@@ -1,10 +1,12 @@
 import { findRecord, recordDownload } from "@/lib/store";
 import { buildStampedManual } from "@/lib/manual";
+import { getStudentProfile } from "@/lib/auth";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const record = await findRecord(id);
-  if (!record || record.status !== "verified" || !record.manualId || record.manualId !== id.toUpperCase()) {
+  const profile = getStudentProfile(_req);
+  if (!record || !profile || profile.matricNumber !== record.matricNumber || record.status !== "verified" || !record.manualId || record.manualId !== id.toUpperCase()) {
     return new Response("No verified payment found for this manual ID.", { status: 404 });
   }
 
