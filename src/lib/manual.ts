@@ -1,6 +1,6 @@
 import { promises as fs } from "fs";
 import path from "path";
-import bwipjs from "bwip-js";
+import bwipjs from "bwip-js/node";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import type { PaymentRecord } from "./store";
 
@@ -39,7 +39,16 @@ const pdfSafe = (s: string) =>
 
 /** Returns the manual PDF with an ownership cover page and an ID + barcode footer on every page. */
 export async function buildStampedManual(original: PaymentRecord): Promise<Uint8Array> {
-  const record = { ...original, fullName: pdfSafe(original.fullName), matricNumber: pdfSafe(original.matricNumber) };
+  if (original.status !== "verified" || !original.manualId || !original.verifiedAt) {
+    throw new Error("A payment must be verified before a manual is generated.");
+  }
+  const record = {
+    ...original,
+    manualId: original.manualId,
+    verifiedAt: original.verifiedAt,
+    fullName: pdfSafe(original.fullName),
+    matricNumber: pdfSafe(original.matricNumber),
+  };
   let doc: PDFDocument;
   try {
     doc = await PDFDocument.load(await fs.readFile(MANUAL_PATH));

@@ -1,36 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GST412 Manual Payment Tracker
 
-## Getting Started
+A Next.js app for collecting receipt submissions and issuing individually stamped GST412 manuals after staff verify payment.
 
-First, run the development server:
+## Required payment
+
+- Account name: Wellspring University Ventures
+- Bank: Zenith Bank
+- Account number: 1310392285
+- Amount: NGN 2,000
+- Matric number format: 3 department letters + 2 entry-year digits + 3 serial digits, with no separators (for example, `MER24001`)
+
+## Run locally
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000. Copy `.env.example` to `.env.local` and replace `PAYMENT_REVIEW_PASSWORD` with a long private password. Restart the server after setting it.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Separate profiles
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Students sign in at `/student/login` with their name and matric number, then use `/student` to submit a receipt and track their own payment.
+- Staff sign in at `/staff/login` with the configured review password, then use `/staff` to review receipts and approve or reject payments.
 
-## Learn More
+The student sign-in issues a profile session from the supplied name and matric number; it does not check a university enrollment directory. Connect institutional authentication or a student roster if enrollment-level identity verification is required.
 
-To learn more about Next.js, take a look at the following resources:
+Payment records and uploaded receipt images are stored under `data/` and are not public static files. Back them up and restrict access to the machine. The JSON file store is intended for one local app instance; use a shared database and private object storage before deploying multiple instances or serverless production hosting.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Student flow and verification
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Students upload a JPG, PNG, or WEBP receipt image (maximum 10 MB). English OCR runs in the browser to suggest a receipt reference, transaction number, transfer number, or teller ID. Students review the suggestion, enter their matric number and name, and submit the receipt. The server stores the image privately while the record waits for staff review.
 
-## Deploy on Vercel
+At `/admin`, staff enter the configured password, inspect the uploaded receipt, and approve or reject the submission. Approval creates the manual ID and changes the payment status to verified. Only verified records can return a barcode or download a manual PDF. Students can check the payment status at `/track` or refresh it on the submission page.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The app does not connect to Zenith Bank. Staff must independently confirm settlement using the university's normal payment records before approving. OCR and a submitted receipt are not, by themselves, confirmation that funds settled.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Personalized manual
+
+The supplied manual source is `manual/GST412-manual-source.txt`; its generated PDF is `manual/GST412-manual.pdf`. Rebuild it after editing the text with `node scripts/build-manual.mjs`. After staff approval, the downloaded PDF receives a cover with the student's name, matric number, verified payment reference, manual ID, and barcode. The matric number and manual ID are also printed in each page footer, alongside the barcode.
